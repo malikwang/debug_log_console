@@ -81,9 +81,10 @@ There are two pre-defined tags in the console:
 | Tag | Description |
 |---|---|
 | `All` |All the logs also show in this tag.|
-| `Default` |The parameter '`tag`' in logConsoleController.log(...) is optional, so these logs are untagged would show in this tag.|
+| `Default` |The parameter `tag` in logConsoleController.log(...) is optional, so these logs are untagged would show in this tag.|
 
 # Future work
 
+- Support custom icon.
 - Support custom log level and color.
 - Support change pre-defined tags.
