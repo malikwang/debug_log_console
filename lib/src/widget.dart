@@ -254,6 +254,7 @@ class __LogContentViewState extends State<_LogContentView>
       return emptyView;
     }
     return Container(
+      key: PageStorageKey<String>(logConsoleController.currentTag),
       child: ListView.separated(
         shrinkWrap: true,
         padding: EdgeInsets.all(0.0),
@@ -306,7 +307,7 @@ class __LogBottomActionState extends State<_LogBottomAction>
 
   @override
   Widget build(BuildContext context) {
-    if (logConsoleController.currentTagIndex != 0) return Container();
+    // if (logConsoleController.currentTagIndex != 0) return Container();
     return Row(
       children: [
         Expanded(
@@ -466,6 +467,7 @@ class _DebugLogConsoleState extends State<DebugLogConsole>
 
   Widget get maxView {
     return ClipRRect(
+      key: GlobalKey(),
       borderRadius: BorderRadius.all(Radius.circular(10)),
       child: Material(
         child: Container(
@@ -515,6 +517,7 @@ class _DebugLogConsoleState extends State<DebugLogConsole>
             child: consoleWidget,
             feedback: consoleWidget,
             childWhenDragging: Container(),
+            ignoringFeedbackSemantics: false,
             onDraggableCanceled: (Velocity velocity, Offset offset) {
               logConsoleController.position = offset;
             },

@@ -47,7 +47,14 @@ class MyApp extends StatelessWidget {
   }
 }
 ```
-
+**Show console**
+```dart
+logConsoleController.showConsole();
+```
+**Remove console**
+```dart
+logConsoleController.removeConsole();
+```
 # Methods
 
 ```dart
