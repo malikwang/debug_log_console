@@ -11,6 +11,7 @@ import 'model.dart';
 
 abstract class LogConsoleListener {
   void onChangeTag();
+  void onChangeLevel();
   void onChangeCurrentLog();
   void onToggleShow(bool isShowing);
   void onChangeSize(bool isFullScreen);
@@ -40,6 +41,18 @@ class DebugLogConsoleController {
   List<String> get tagList => _tagList;
   int _tagIndex = 0;
 
+  List<String> get levelList {
+    List<String> levels = ['All'];
+    DebugLogLevel.values.forEach((level) {
+      levels
+          .add(level.toString().replaceAll('DebugLogLevel.', '').toUpperCase());
+    });
+    return levels;
+  }
+
+  int _levelIndex = 0;
+  int get currentLevelIndex => _levelIndex;
+
   bool _writeLog = false;
 
   bool _fullScreen = false;
@@ -60,6 +73,11 @@ class DebugLogConsoleController {
       if (x <= deviceSize.width / 2) x = margin;
       if (x >= deviceSize.width / 2) x = deviceSize.width - margin - minSize;
     } else {
+      // When Left or right drag exceed half width, auto minConsole
+      if (x < 0 - consoleWidth / 2 ||
+          x > deviceSize.width - margin - consoleWidth / 2) {
+        minConsole();
+      }
       x = margin;
     }
     _offset = Offset(x, y);
@@ -81,9 +99,48 @@ class DebugLogConsoleController {
   bool get isFullScreen => _fullScreen;
   bool get isShowing => _showing;
 
+  bool searchMode = false;
+  List<String> _keywords = [];
+
+  void searchLog(String value) {
+    searchMode = true;
+    value = value.trim();
+    if (value.isNotEmpty) {
+      _keywords =
+          value.split(' ').where((element) => element.isNotEmpty).toList();
+    }
+    _notifyCurrentLogChange();
+  }
+
+  void resetSearchMode() {
+    searchMode = false;
+    _keywords = [];
+    _notifyCurrentLogChange();
+  }
+
   List<DebugLog> get currentLogList {
-    if (currentIsAll) return _logs.toList();
-    return _fetchTagLogs(currentTag);
+    List<DebugLog> results;
+    if (searchMode) {
+      results = _logs;
+      if (_keywords.isEmpty) return [];
+      return results.where((log) {
+        for (String keyword in _keywords) {
+          if (log.msg.contains(keyword)) return true;
+        }
+        return false;
+      }).toList();
+    }
+    if (currentIsAll) {
+      results = _logs;
+    } else {
+      results = _fetchTagLogs(currentTag);
+    }
+    if (_levelIndex != 0) {
+      results = results
+          .where((e) => e.level == DebugLogLevel.values[_levelIndex - 1])
+          .toList();
+    }
+    return results;
   }
 
   int get currentTagIndex => _tagIndex;
@@ -133,6 +190,17 @@ class DebugLogConsoleController {
       _notifyCurrentLogChange();
       for (final listener in _listeners) {
         listener?.onChangeTag();
+      }
+    }
+
+    _awaitBuilding(callback);
+  }
+
+  _notifyLevelChange() {
+    void callback() {
+      _notifyCurrentLogChange();
+      for (final listener in _listeners) {
+        listener?.onChangeLevel();
       }
     }
 
@@ -206,6 +274,11 @@ class DebugLogConsoleController {
       log.isRead = true;
     });
     _notifyTagChange();
+  }
+
+  void changeLevel(int index) {
+    _levelIndex = index;
+    _notifyLevelChange();
   }
 
   Future<Directory> _getLogShareDirectory() async {

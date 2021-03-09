@@ -1,3 +1,8 @@
+## 1.1.0
+
+* Support: filter log by level.
+* Support: search log by keywords.
+
 ## 1.0.2
 
 * Fix drag problem.

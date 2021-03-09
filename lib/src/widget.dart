@@ -1,11 +1,10 @@
-import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'controller.dart';
 import 'model.dart';
+
+typedef IndexItemBuilder = Widget Function(int index);
 
 Widget _buildIconButton({
   IconData iconData,
@@ -25,6 +24,70 @@ Widget _buildIconButton({
   );
 }
 
+Widget _buildConditionCell(bool isSelected, String content,
+    {VoidCallback onTap}) {
+  return GestureDetector(
+    onTap: () {
+      onTap?.call();
+    },
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 10),
+      margin: EdgeInsets.only(right: 10),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.blue : Colors.transparent,
+        borderRadius: BorderRadius.all(Radius.circular(5)),
+      ),
+      child: Text(
+        content,
+        style: TextStyle(fontSize: 14, color: Colors.white),
+        maxLines: 1,
+      ),
+    ),
+  );
+}
+
+class _ConditionListView extends StatelessWidget {
+  _ConditionListView({
+    @required this.conditionName,
+    @required this.itemCount,
+    @required this.itemBuilder,
+  });
+
+  final String conditionName;
+  final int itemCount;
+  final IndexItemBuilder itemBuilder;
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          conditionName,
+          style: TextStyle(fontSize: 16, color: Colors.white),
+          maxLines: 1,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: Container(
+              height: 30,
+              child: ListView.builder(
+                padding: EdgeInsets.all(0.0),
+                shrinkWrap: true,
+                itemBuilder: (_, index) {
+                  return itemBuilder(index);
+                },
+                scrollDirection: Axis.horizontal,
+                itemCount: itemCount,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _LogTagListView extends StatefulWidget {
   @override
   __LogTagListViewState createState() => __LogTagListViewState();
@@ -32,58 +95,6 @@ class _LogTagListView extends StatefulWidget {
 
 class __LogTagListViewState extends State<_LogTagListView>
     with LogConsoleListener {
-  Widget _buildTagView(bool isSelected, String tag, {int unreadCount = 0}) {
-    return Stack(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: 5,
-          ),
-          margin: EdgeInsets.only(top: 10, right: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.blue : Colors.transparent,
-            border: Border.all(
-              color: isSelected ? Colors.transparent : Colors.blue,
-              width: 1,
-            ),
-            borderRadius: BorderRadius.all(Radius.circular(5)),
-          ),
-          child: Text(
-            tag,
-            style: TextStyle(
-              fontSize: 14,
-              color: isSelected ? Colors.white : Colors.blue,
-            ),
-            maxLines: 1,
-          ),
-        ),
-        if (unreadCount > 0)
-          Positioned(
-            child: Container(
-              width: 20,
-              height: 20,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.redAccent,
-                borderRadius: BorderRadius.all(Radius.circular(10)),
-              ),
-              child: Text(
-                '+$unreadCount',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.white,
-                ),
-                maxLines: 1,
-              ),
-            ),
-            top: 0,
-            right: 0,
-          ),
-      ],
-    );
-  }
-
   @override
   void initState() {
     super.initState();
@@ -98,42 +109,51 @@ class __LogTagListViewState extends State<_LogTagListView>
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 10),
-          child: Text(
-            'Tags:',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white,
-            ),
-            maxLines: 1,
+    return _ConditionListView(
+      conditionName: 'Tag: ',
+      itemCount: logConsoleController.tagList.length,
+      itemBuilder: (index) {
+        bool isSelected = logConsoleController.currentTagIndex == index;
+        String tag = logConsoleController.tagList[index];
+        int unreadCount = logConsoleController.getTagUnreadCount(tag);
+        return Container(
+          height: 40,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              _buildConditionCell(
+                isSelected,
+                tag,
+                onTap: () {
+                  logConsoleController.changeTag(index);
+                },
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  child: Container(
+                    width: 20,
+                    height: 20,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Text(
+                      '+$unreadCount',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  top: 0,
+                  right: 0,
+                ),
+            ],
           ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemBuilder: (_, index) {
-                bool isSelected = logConsoleController.currentTagIndex == index;
-                String tag = logConsoleController.tagList[index];
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    logConsoleController.changeTag(index);
-                  },
-                  child: _buildTagView(isSelected, tag,
-                      unreadCount: logConsoleController.getTagUnreadCount(tag)),
-                );
-              },
-              scrollDirection: Axis.horizontal,
-              itemCount: logConsoleController.tagList.length,
-            ),
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -153,6 +173,67 @@ class __LogTagListViewState extends State<_LogTagListView>
 
   @override
   void onShowToast(String msg, bool showProgress) {}
+
+  @override
+  void onChangeLevel() {}
+}
+
+class _LogLevelListView extends StatefulWidget {
+  @override
+  __LogLevelListViewState createState() => __LogLevelListViewState();
+}
+
+class __LogLevelListViewState extends State<_LogLevelListView>
+    with LogConsoleListener {
+  @override
+  void initState() {
+    super.initState();
+    logConsoleController.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    logConsoleController.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _ConditionListView(
+      conditionName: 'Level: ',
+      itemCount: logConsoleController.levelList.length,
+      itemBuilder: (index) {
+        bool isSelected = logConsoleController.currentLevelIndex == index;
+        return _buildConditionCell(
+          isSelected,
+          logConsoleController.levelList[index],
+          onTap: () {
+            logConsoleController.changeLevel(index);
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  void onChangeCurrentLog() {}
+
+  @override
+  void onChangeSize(bool isFullScreen) {}
+
+  @override
+  void onChangeTag() {}
+
+  @override
+  void onToggleShow(bool isShowing) {}
+
+  @override
+  void onShowToast(String msg, bool showProgress) {}
+
+  @override
+  void onChangeLevel() {
+    setState(() {});
+  }
 }
 
 class _TapShowAll extends StatefulWidget {
@@ -284,6 +365,98 @@ class __LogContentViewState extends State<_LogContentView>
 
   @override
   void onShowToast(String msg, bool showProgress) {}
+
+  @override
+  void onChangeLevel() {}
+}
+
+class _LogTopFuncArea extends StatefulWidget {
+  @override
+  __LogTopFuncAreaState createState() => __LogTopFuncAreaState();
+}
+
+class __LogTopFuncAreaState extends State<_LogTopFuncArea> {
+  TextEditingController _textEditingController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10.0),
+            child: !logConsoleController.searchMode
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10.0),
+                        child: _LogTagListView(),
+                      ),
+                      _LogLevelListView(),
+                    ],
+                  )
+                : TextField(
+                    controller: _textEditingController,
+                    onSubmitted: (value) {
+                      logConsoleController.searchLog(value);
+                    },
+                    style: TextStyle(color: Colors.blue),
+                    decoration: InputDecoration(
+                      filled: false,
+                      isDense: true,
+                      hintText: 'keywords, split with space',
+                      hintStyle: TextStyle(color: Colors.white),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white, width: 2),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blue, width: 2),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: logConsoleController.searchMode
+              ? [
+                  _buildIconButton(
+                    iconData: Icons.arrow_back,
+                    onTap: () {
+                      setState(() {
+                        logConsoleController.resetSearchMode();
+                      });
+                    },
+                  ),
+                  _buildIconButton(
+                    iconData: Icons.check,
+                    onTap: () {
+                      logConsoleController
+                          .searchLog(_textEditingController.text);
+                    },
+                  ),
+                ]
+              : [
+                  _buildIconButton(
+                    iconData: Icons.remove,
+                    onTap: logConsoleController.minConsole,
+                  ),
+                  _buildIconButton(
+                    iconData: Icons.search,
+                    onTap: () {
+                      setState(() {
+                        logConsoleController.searchMode = true;
+                      });
+                    },
+                  ),
+                ],
+        ),
+      ],
+    );
+  }
 }
 
 class _LogBottomAction extends StatefulWidget {
@@ -335,10 +508,7 @@ class __LogBottomActionState extends State<_LogBottomAction>
               bottom: 13,
               child: Text(
                 '50',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 8,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 8),
               ),
             ),
           ],
@@ -355,10 +525,7 @@ class __LogBottomActionState extends State<_LogBottomAction>
               bottom: 15,
               child: Text(
                 '100',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 6,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 6),
               ),
             ),
           ],
@@ -383,6 +550,9 @@ class __LogBottomActionState extends State<_LogBottomAction>
 
   @override
   void onToggleShow(bool isShowing) {}
+
+  @override
+  void onChangeLevel() {}
 }
 
 class DebugLogConsole extends StatefulWidget {
@@ -427,24 +597,6 @@ class _DebugLogConsoleState extends State<DebugLogConsole>
     }
   }
 
-  Widget get tagListView {
-    return Container(
-      alignment: Alignment.centerLeft,
-      margin: EdgeInsets.symmetric(vertical: 10),
-      height: 40,
-      child: Row(
-        children: [
-          Expanded(child: _LogTagListView()),
-          _buildIconButton(
-            iconData: Icons.remove,
-            onTap: logConsoleController.minConsole,
-            padding: EdgeInsets.zero,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget get minView {
     return GestureDetector(
       onTap: logConsoleController.maxConsole,
@@ -483,7 +635,7 @@ class _DebugLogConsoleState extends State<DebugLogConsole>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    tagListView,
+                    _LogTopFuncArea(),
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
@@ -587,14 +739,7 @@ class _DebugLogConsoleState extends State<DebugLogConsole>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Platform.isAndroid
-                      ? CircularProgressIndicator()
-                      : Theme(
-                          data: ThemeData.dark(),
-                          child: CupertinoActivityIndicator(
-                            radius: 15,
-                          ),
-                        ),
+                  CircularProgressIndicator(),
                   Padding(
                     padding: const EdgeInsets.only(top: 10.0),
                     child: Material(
@@ -644,4 +789,7 @@ class _DebugLogConsoleState extends State<DebugLogConsole>
       });
     }
   }
+
+  @override
+  void onChangeLevel() {}
 }
