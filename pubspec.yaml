@@ -3,7 +3,7 @@ description: Using a draggable and hoverable panel to display the key info/log o
 repository: https://github.com/malikwang/debug_log_console
 homepage: https://github.com/malikwang/debug_log_console
 
-version: 1.0.2
+version: 1.1.0
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
